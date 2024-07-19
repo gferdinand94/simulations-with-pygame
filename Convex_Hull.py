@@ -1,4 +1,5 @@
 import pygame
+import math
 from sys import exit
 
 pygame.init()
@@ -42,15 +43,26 @@ class Line():
     def place_line(self):
         pygame.draw.line(screen, 'black', self.line_position_start, self.line_position_end)
 
+def counterclockwise(p1, p2, p3):
+    return ((p2[0]-p1[0]) * (p3[1]-p1[1])) - ((p2[1]-p1[1]) * (p3[0]-p1[0]))
+
+# def sort_points_by_angle()
+
 mouse_pressed = False
 circles = []
 circle_positions = []
 lines = []
 first_point = (0,0)
+clicks = 0
+circle_pos_dict = dict()
+# slopes = []
+slopes_sorted = []
 
 while True:
 
     slopes = []
+    slopes_dict = dict()
+    points_sorted_by_angle = []
 
     # placed_circle = False
     screen.fill('sky blue')
@@ -61,26 +73,54 @@ while True:
             exit()
 
         elif event.type == pygame.MOUSEBUTTONDOWN:
+
+            # When clicking, add a Circle object
             circles.append(Circle())
+
+            # Give the current Circle object a position (current position of the mouse)
             circles[-1].circle_pos(pygame.mouse.get_pos()[0], pygame.mouse.get_pos()[1])
-            # circle_positions.append((int(circles[-1].circle_position.x), int(circles[-1].circle_position.y)))
+
+            # Add circle positions in adjusted coordinates
             circle_positions.append(circles[-1].flip_y_coord())
-            circle_pos_dict = dict()
-            for pos in range(len(circle_positions)):
-                circle_pos_dict[pos] = circle_positions[pos]
+            # circle_positions.append((int(circles[-1].circle_position.x), int(circles[-1].circle_position.y)))
+
+            # Keep track of circle positions
+            circle_pos_dict[clicks] = circle_positions[clicks]
 
             # Initially sorts by y-coordinate then by x-coordinate
             # circle_positions.sort(key=lambda x: (x[1], x[0]))
+
+            # Finds the bottom left-most point by finding the point with the lowest y-value and then if
+            # two points have the same lowest y-value, sort by the lowest x-value
             first_point = min(circle_positions, key=lambda x: (x[1], x[0]))
+
+            # Build angles list and dictionary by comparing each point to the first_point
+            counter = 0
             for angle in circle_positions:
                 if angle != first_point:
-                    slopes.append((angle[1] - first_point[1]) / (angle[0] - first_point[0]))
+                    slope = round((angle[1] - first_point[1]) / (angle[0] - first_point[0]), 2)
+                    slopes.append(slope)
+                    slopes_dict[slope] = counter
+                elif angle == first_point:
+                    slopes.append(0)
+                    slopes_dict[0] = counter
+                
+                counter += 1
+            
+            slopes_sorted = sorted(slopes)
+
+            for i in slopes_sorted:
+                index = slopes_dict[i]
+                points_sorted_by_angle.append(circle_pos_dict[index])
 
             # For testing
             print(circle_positions)
             print(circle_pos_dict)
             print(first_point)
             print(slopes)
+            print(slopes_dict)
+            print(slopes_sorted)
+            print(points_sorted_by_angle)
 
             lines.append(Line())
             num_lines = len(lines)
@@ -90,6 +130,8 @@ while True:
                 lines[-2].line_pos_end(pygame.mouse.get_pos()[0], pygame.mouse.get_pos()[1])
                 lines[-1].line_pos_start(pygame.mouse.get_pos()[0], pygame.mouse.get_pos()[1])
 
+            # Increment clicks
+            clicks += 1
 
     for count in range(len(circles)):
         if count < len(circles) - 1:
