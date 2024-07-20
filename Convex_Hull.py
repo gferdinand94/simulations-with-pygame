@@ -57,14 +57,15 @@ clicks = 0
 circle_pos_dict = dict()
 # slopes = []
 slopes_sorted = []
+stack = []
+
 
 while True:
 
     slopes = []
     slopes_dict = dict()
     points_sorted_by_angle = []
-    stack = []
-    stack_draw = []
+    # stack = []
 
     # placed_circle = False
     screen.fill('sky blue')
@@ -77,6 +78,8 @@ while True:
         elif event.type == pygame.MOUSEBUTTONDOWN:
 
             lines = []
+            stack = []
+
 
             # When clicking, add a Circle object
             circles.append(Circle())
@@ -106,21 +109,26 @@ while True:
                     run = angle[0] - first_point[0]
 
                     if run == 0:
-                        slopes.append(90)
-                        slopes_dict[90] = counter
+                        # slopes.append(90)
+                        # slopes_dict[90] = counter
+                        slopes.append(round(math.pi/2, 4))
+                        slopes_dict[round(math.pi/2, 4)] = counter
 
                     else:
                         slope = rise / run
-                        slope = round(math.atan(slope) * 180/math.pi, 2)
+                        # slope = round(math.atan(slope) * 180/math.pi, 2)
+                        slope = round(math.atan(slope), 4)
                         if slope < 0:
-                            slope = round(slope + 180, 2)
+                            # slope = round(slope + 180, 2)
+                            slope = round(slope + math.pi, 4)
 
                         slopes.append(slope)
                         slopes_dict[slope] = counter
 
                 elif angle == first_point:
-                    slopes.append(0)
-                    slopes_dict[0] = counter
+                    pass
+                    # slopes.append(0)
+                    # slopes_dict[0] = counter
                 
                 counter += 1
             
@@ -128,6 +136,7 @@ while True:
             slopes_sorted = sorted(slopes)
 
             # Sort points by ascending angle
+            points_sorted_by_angle.append(first_point)
             for i in slopes_sorted:
                 index = slopes_dict[i]
                 points_sorted_by_angle.append(circle_pos_dict[index])
@@ -136,12 +145,8 @@ while True:
             for p in points_sorted_by_angle:
                 while len(stack) > 1 and counterclockwise(stack[-2], stack[-1], p) <= 0:
                     stack = stack[:-1]
-                    stack_draw = stack_draw[:-1]
                     lines = lines[:-1]
                 stack.append(p)
-                stack_draw.append(Circle())
-                stack_draw[-1].circle_pos(p[0], p[1])
-                stack_draw[-1].flip_y_coord()
                 lines.append(Line())
             
             # ##################
@@ -155,7 +160,12 @@ while True:
             # print(slopes_dict)
             # print(slopes_sorted)
             # print(points_sorted_by_angle)
+            # print((pygame.mouse.get_pos()[0], flip(pygame.mouse.get_pos()[1])))
             # print(stack)
+
+            # ##################
+            # ##################
+            # ##################
 
             # Draw a single line if only two points
             if len(lines) == 2:
