@@ -3,7 +3,7 @@ import math
 from sys import exit
 
 pygame.init()
-screen = pygame.display.set_mode((1000,500))
+screen = pygame.display.set_mode((1600,900))
 pygame.display.set_caption('Convex Hull Implementation')
 clock = pygame.time.Clock()
 
@@ -41,14 +41,14 @@ class Line():
         self.line_position_end.y = y
 
     def place_line(self):
-        pygame.draw.line(screen, 'black', self.line_position_start, self.line_position_end)
+        pygame.draw.line(screen, 'black', self.line_position_start, self.line_position_end, 2)
 
 def counterclockwise(p1, p2, p3):
     return ((p2[0]-p1[0]) * (p3[1]-p1[1])) - ((p2[1]-p1[1]) * (p3[0]-p1[0]))
 
-# def sort_points_by_angle()
+def flip(y):
+        return int(screen.get_height() - y)
 
-mouse_pressed = False
 circles = []
 circle_positions = []
 lines = []
@@ -63,6 +63,8 @@ while True:
     slopes = []
     slopes_dict = dict()
     points_sorted_by_angle = []
+    stack = []
+    stack_draw = []
 
     # placed_circle = False
     screen.fill('sky blue')
@@ -74,6 +76,8 @@ while True:
 
         elif event.type == pygame.MOUSEBUTTONDOWN:
 
+            lines = []
+
             # When clicking, add a Circle object
             circles.append(Circle())
 
@@ -82,7 +86,6 @@ while True:
 
             # Add circle positions in adjusted coordinates
             circle_positions.append(circles[-1].flip_y_coord())
-            # circle_positions.append((int(circles[-1].circle_position.x), int(circles[-1].circle_position.y)))
 
             # Keep track of circle positions
             circle_pos_dict[clicks] = circle_positions[clicks]
@@ -98,48 +101,86 @@ while True:
             counter = 0
             for angle in circle_positions:
                 if angle != first_point:
-                    slope = round((angle[1] - first_point[1]) / (angle[0] - first_point[0]), 2)
-                    slopes.append(slope)
-                    slopes_dict[slope] = counter
+
+                    rise = angle[1] - first_point[1]
+                    run = angle[0] - first_point[0]
+
+                    if run == 0:
+                        slopes.append(90)
+                        slopes_dict[90] = counter
+
+                    else:
+                        slope = rise / run
+                        slope = round(math.atan(slope) * 180/math.pi, 2)
+                        if slope < 0:
+                            slope = round(slope + 180, 2)
+
+                        slopes.append(slope)
+                        slopes_dict[slope] = counter
+
                 elif angle == first_point:
                     slopes.append(0)
                     slopes_dict[0] = counter
                 
                 counter += 1
             
+            # Sort angles
             slopes_sorted = sorted(slopes)
 
+            # Sort points by ascending angle
             for i in slopes_sorted:
                 index = slopes_dict[i]
                 points_sorted_by_angle.append(circle_pos_dict[index])
 
+            # Convex hull algorithm (Graham scan)
+            for p in points_sorted_by_angle:
+                while len(stack) > 1 and counterclockwise(stack[-2], stack[-1], p) <= 0:
+                    stack = stack[:-1]
+                    stack_draw = stack_draw[:-1]
+                    lines = lines[:-1]
+                stack.append(p)
+                stack_draw.append(Circle())
+                stack_draw[-1].circle_pos(p[0], p[1])
+                stack_draw[-1].flip_y_coord()
+                lines.append(Line())
+            
+            # ##################
             # For testing
-            print(circle_positions)
-            print(circle_pos_dict)
-            print(first_point)
-            print(slopes)
-            print(slopes_dict)
-            print(slopes_sorted)
-            print(points_sorted_by_angle)
+            # ##################
 
-            lines.append(Line())
-            num_lines = len(lines)
-            if num_lines == 1:
-                lines[0].line_pos_start(pygame.mouse.get_pos()[0], pygame.mouse.get_pos()[1])
-            elif num_lines > 1:
-                lines[-2].line_pos_end(pygame.mouse.get_pos()[0], pygame.mouse.get_pos()[1])
-                lines[-1].line_pos_start(pygame.mouse.get_pos()[0], pygame.mouse.get_pos()[1])
+            # print(circle_positions)
+            # print(circle_pos_dict)
+            # print(first_point)
+            # print(slopes)
+            # print(slopes_dict)
+            # print(slopes_sorted)
+            # print(points_sorted_by_angle)
+            # print(stack)
+
+            # Draw a single line if only two points
+            if len(lines) == 2:
+                lines[0].line_pos_start(stack[0][0], flip(stack[0][1]))
+                lines[0].line_pos_end(stack[1][0], flip(stack[1][1]))
+
+            # Connect and draw full convex hull (connect last point back to first point)
+            if len(lines) > 2:
+                for line in range(2, len(lines)):
+                    lines[line-2].line_pos_start(stack[line-2][0], flip(stack[line-2][1]))
+                    lines[line-2].line_pos_end(stack[line-1][0], flip(stack[line-1][1]))
+                    lines[line-1].line_pos_start(stack[line-1][0], flip(stack[line-1][1]))
+                    lines[line-1].line_pos_end(stack[line][0], flip(stack[line][1]))
+                    lines[line].line_pos_start(stack[line][0], flip(stack[line][1]))
+                    lines[line].line_pos_end(stack[0][0], flip(stack[0][1]))
 
             # Increment clicks
             clicks += 1
 
+    # Displaying points and lines
     for count in range(len(circles)):
-        if count < len(circles) - 1:
-            circles[count].place_circle()
-            lines[count].place_line()
-        
-        else:
-            circles[count].place_circle()
+        circles[count].place_circle()
+ 
+    for count in range(len(lines)):
+        lines[count].place_line()
     
     pygame.display.update()
     clock.tick(60)
